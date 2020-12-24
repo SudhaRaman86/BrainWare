@@ -5,6 +5,7 @@ using System.Web;
 
 namespace Web.Infrastructure
 {
+    using System.Data;
     using System.Data.Common;
     using System.Data.SqlClient;
 
@@ -20,23 +21,41 @@ namespace Web.Infrastructure
 
             _connection = new SqlConnection(connectionString);
 
-            _connection.Open();
         }
 
-        public DbDataReader ExecuteReader(string query)
+        public DbDataReader ExecuteReader(string query, List<SqlParameter> paralist)
         {
-           
-
             var sqlQuery = new SqlCommand(query, _connection);
-
-            return sqlQuery.ExecuteReader();
+            if (paralist != null)
+            {
+                foreach (var p in paralist)
+                {
+                    sqlQuery.Parameters.AddWithValue(p.ParameterName, p.Value);
+                }
+            }
+            try
+            {
+                _connection.Open();
+                return sqlQuery.ExecuteReader();
+            }
+            catch (SqlException ex)
+            {
+                var message = ex.Message != null ? ex.Message.ToString() : ex.InnerException != null ? ex.InnerException.ToString() : ex.ToString();
+                //Log into Dblogger table
+            }
+            return null;
         }
 
         public int ExecuteNonQuery(string query)
         {
             var sqlQuery = new SqlCommand(query, _connection);
-
+            _connection.Open();
             return sqlQuery.ExecuteNonQuery();
+        }
+
+        public void CloseConnection()
+        {
+            _connection.Close();
         }
 
     }
